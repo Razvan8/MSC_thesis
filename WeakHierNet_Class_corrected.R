@@ -166,7 +166,8 @@ find_adjacent_knots_and_alpha <- function(knots, evaluated) {
     p2 <- knots[positive_index + 1]
     
     # Calculate alpha_hat
-    alpha_hat <- -evaluated[positive_index] * (evaluated[positive_index + 1] - evaluated[positive_index]) / (p2 - p1)
+    #alpha_hat <- -evaluated[positive_index] * (evaluated[positive_index + 1] - evaluated[positive_index]) / (p2 - p1) ##initial one
+    alpha_hat <- (p1*evaluated[positive_index + 1] - p2*evaluated[positive_index]) / (evaluated[positive_index + 1] - evaluated[positive_index])
     #print(positive_index)
     return(alpha_hat)
   } else {
@@ -316,7 +317,7 @@ WeakHierNet <- function(X, Beta_plus_init, Beta_minus_init, Theta_init, y, lambd
       r_hat_old <- r_hat
       r_hat <-y- X %*% (Beta_hat_plus - Beta_hat_minus) - Z %*% vec_Theta_hat / 2
       r_hat<- -  r_hat ############################### TAKE CARE ! why like this?  ########################
-      if (k%%100==0)
+      if (k%%50==1)
       {cat(' Loss rhat',mean(r_hat^2))}
       #cat("Theta", Theta_hat) 
       
@@ -328,7 +329,7 @@ WeakHierNet <- function(X, Beta_plus_init, Beta_minus_init, Theta_init, y, lambd
 
         #cat('mean(r_hat): ', mean(r_hat), " ; ")
         
-        
+        ###CHECK HERE!!!
         result_ONEROW <-  ONEROW(delta * Beta_hat_plus[j] - t* t(X[, j]) %*% r_hat , 
                                  delta * Beta_hat_minus[j] + t * t(X[, j]) %*%r_hat ,
                                  delta * Theta_hat[,j] - t* t(Z[, j_cols])%*%r_hat, lambda=lambda ,j=j,  t=t)
@@ -415,7 +416,7 @@ col2 <- rnorm(n, mean = 2,sd=10)
 noise <- rnorm(n, mean = 0, sd = 0.1)
 
 # Generate response variable
-response <- 0 * col1 + 0 * col2 + noise  + 0.3 *col1*col2
+response <- 0 * col1 + 0 * col2 + noise  + 2 *col1*col2
 
  #Combine predictors and response into a data frame
 #synthetic_data <- data.frame(col1, col2, response)

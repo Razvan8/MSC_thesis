@@ -549,7 +549,7 @@ colnames(X_all_train)
 
 ######################## HIER NET ##########################################################
 
-lamhat=1e-200
+lamhat=80
 fit=hierNet(X_all_train,y_train, lam = lamhat, diagonal = FALSE)
 yhat_test=predict(fit,X_all_test)
 yhat_train=predict(fit,X_all_train)
@@ -579,13 +579,13 @@ t<-6e-7+3e-8
 #t<-0.001
 
 myWeakHierNet<-WeakHierNet (X=X_all_train, Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), 
-              Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=100, t=t, tol=1e-8, 
-              max_iter=12000, eps=1e-8)  #Increase max iter if needed or decrease tol 
+              Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=80, t=t, tol=1e-8, 
+              max_iter=15000, eps=1e-8)  #Increase max iter if needed or decrease tol 
 
 # Fit the model
 fitted=myWeakHierNet$fit(X=X_all_train, Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), 
-                         Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=100, t=t, tol=1e-8, 
-                         max_iter=12000, eps=1e-8 )
+                         Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=80, t=t, tol=1e-8, 
+                         max_iter=15000, eps=1e-8 )
 
 # Make predictions
 new_X <- X_all_test
@@ -602,7 +602,25 @@ sum(abs(fitted$Theta_hat)<=0.000001)
 
 
 ###se the nr of 0s
-zero_matrix_operation(fitted$Theta_hat,21,14,2,3,0.1)
+zero_matrix_operation(fitted$Theta_hat,21,14,2,3,0)
+
+# Call the function to store the vectors and theta in a file
+folder_name <- "Results"
+file_name <- "llmd80_it15k"
+store_vectors_theta(fitted$Beta_hat_plus, fitted$Beta_hat_minus, fitted$Theta_hat, folder_name, file_name)
+
+# Example usage:
+folder_name <- "Results"
+file_name <- "llmd50_it15k"
+data <- read_vectors_theta(folder_name, file_name)
+theta_lmd1 <- data$theta
+
+lm1_idx=which(fit$th==0)
+lm2_idx=which(fitted$Theta_hat==0)
+length(intersect(lm1_idx, lm2_idx))
+length(lm1_idx)
+length(lm2_idx)
+
 
 
 ##### SEE ALSO LM############
@@ -953,8 +971,59 @@ coef(lm_model)
 
 
 
+store_vectors_theta <- function(beta_plus, beta_minus, theta, folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Write beta_plus, beta_minus, and theta to the file
+  write.table(beta_plus, file = file_path, append = FALSE, col.names = FALSE, row.names = FALSE)
+  write.table(beta_minus, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+  write.table(theta, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+}
+
+# Example usage:
+# Define sample data for beta_plus, beta_minus, and theta
+beta_plus <- c(1, 2, 3)
+beta_minus <- c(4, 5, 6)
+theta <- matrix(1:9, nrow = 3, ncol = 3)
+
+# Call the function to store the vectors and theta in a file
+folder_name <- "Results"
+file_name <- "initial"
+store_vectors_theta(beta_plus, beta_minus, theta, folder_name, file_name)
 
 
+read_vectors_theta <- function(folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Read data from the file
+  data <- scan(file_path)
+  
+  # Split the data into beta_plus, beta_minus, and theta
+  p <- sqrt(length(data)+1)-1 ## there are p^2 +2p elems
+  print(p)
+  beta_plus <- as.vector(data[1:p])
+  beta_minus <- as.vector(data[(p + 1):(2 * p)])
+  theta <- matrix(data[(2 * p + 1):length(data)], ncol = p)
+  
+  return(list(beta_plus = beta_plus, beta_minus = beta_minus, theta = theta))
+}
+
+# Example usage:
+folder_name <- "Results"
+file_name <- "initial"
+data <- read_vectors_theta(folder_name, file_name)
+
+# Access the vectors and matrix
+beta_plus <- data$beta_plus
+beta_minus <- data$beta_minus
+theta <- data$theta
+
+
+beta_plus
+beta_minus
+theta
 
 
 
