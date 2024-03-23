@@ -377,7 +377,7 @@ create_pairwise_interactions <- function(X, num_categories_list) {
 #X_all_main <- X_all_main[, sorted_column_names]
 print(colnames((X_all_main)))
 
-
+X_xx<-xx
 
 
 #################### PREP AND SPLIT DATA #######################################################################################################
@@ -549,7 +549,7 @@ colnames(X_all_train)
 
 ######################## HIER NET ##########################################################
 
-lamhat=80
+lamhat=100
 fit=hierNet(X_all_train,y_train, lam = lamhat, diagonal = FALSE)
 yhat_test=predict(fit,X_all_test)
 yhat_train=predict(fit,X_all_train)
@@ -575,17 +575,17 @@ y_train
 source("WeakHierNet_Class_corrected.R")
 print('My weakhiernet')
 
-t<-6e-7+3e-8
+t<-6e-6+3e-8
 #t<-0.001
 
 myWeakHierNet<-WeakHierNet (X=X_all_train, Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), 
-              Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=80, t=t, tol=1e-8, 
-              max_iter=15000, eps=1e-8)  #Increase max iter if needed or decrease tol 
+              Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=1, t=t, tol=1e-7, 
+              max_iter=10000, eps=1e-8)  #Increase max iter if needed or decrease tol 
 
 # Fit the model
 fitted=myWeakHierNet$fit(X=X_all_train, Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), 
-                         Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=80, t=t, tol=1e-8, 
-                         max_iter=15000, eps=1e-8 )
+                         Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=1, t=t, tol=1e-7, 
+                         max_iter=10000, eps=1e-8 )
 
 # Make predictions
 new_X <- X_all_test
@@ -606,16 +606,16 @@ zero_matrix_operation(fitted$Theta_hat,21,14,2,3,0)
 
 # Call the function to store the vectors and theta in a file
 folder_name <- "Results"
-file_name <- "llmd80_it15k"
+file_name <- "lmd100_it10k"
 store_vectors_theta(fitted$Beta_hat_plus, fitted$Beta_hat_minus, fitted$Theta_hat, folder_name, file_name)
 
 # Example usage:
 folder_name <- "Results"
-file_name <- "llmd50_it15k"
+file_name <- "lmd80_it10k"
 data <- read_vectors_theta(folder_name, file_name)
 theta_lmd1 <- data$theta
 
-lm1_idx=which(fit$th==0)
+lm1_idx=which(theta_lmd1==0)
 lm2_idx=which(fitted$Theta_hat==0)
 length(intersect(lm1_idx, lm2_idx))
 length(lm1_idx)
