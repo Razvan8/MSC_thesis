@@ -232,6 +232,8 @@ print(dim(y))
 X_all_main<-xx.all ##have X_all_main for later
 print(dim(X_all_main))
 
+print(colnames(xxx.all))
+
 ############################################ FUNCTIONS THAT I USE ######################################################################
 
 
@@ -365,29 +367,128 @@ create_pairwise_interactions <- function(X, num_categories_list) {
 
 
 
+store_vectors_theta <- function(beta_plus, beta_minus, theta, folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Write beta_plus, beta_minus, and theta to the file
+  write.table(beta_plus, file = file_path, append = FALSE, col.names = FALSE, row.names = FALSE)
+  write.table(beta_minus, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+  write.table(theta, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+}
+
+# Example usage:
+# Define sample data for beta_plus, beta_minus, and theta
+#beta_plus <- c(1, 2, 3)
+#beta_minus <- c(4, 5, 6)
+#theta <- matrix(1:9, nrow = 3, ncol = 3)
+
+# Call the function to store the vectors and theta in a file
+#folder_name <- "Results"
+#file_name <- "initial"
+#store_vectors_theta(beta_plus, beta_minus, theta, folder_name, file_name)
+
+
+read_vectors_theta <- function(folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Read data from the file
+  data <- scan(file_path)
+  
+  # Split the data into beta_plus, beta_minus, and theta
+  p <- sqrt(length(data)+1)-1 ## there are p^2 +2p elems
+  print(p)
+  beta_plus <- as.vector(data[1:p])
+  beta_minus <- as.vector(data[(p + 1):(2 * p)])
+  theta <- matrix(data[(2 * p + 1):length(data)], ncol = p)
+  
+  return(list(beta_plus = beta_plus, beta_minus = beta_minus, theta = theta))
+}
+
+# Example usage:
+#folder_name <- "Results"
+#file_name <- "initial"
+#data <- read_vectors_theta(folder_name, file_name)
+
+# Access the vectors and matrix
+#beta_plus <- data$beta_plus
+#beta_minus <- data$beta_minus
+#theta <- data$theta
+
+show_vector_with_names <- function(vector, names) {
+  # Create a data frame with names and vector values
+  df <- data.frame(names, vector)
+  
+  # Print the data frame
+  print(df)
+}
+
+# Example usage with vector:
+# vec <- c(1, 2, 3, 4)
+# show_data_with_names(vec, names)
+
+# Example usage with matrix:
+# mat <- matrix(1:4, ncol = 1)
+# show_data_with_names(mat, names)
 
 
 
+show_matrix_with_names <- function(matrix, names) {
+  # Assign names to rows and columns
+  rownames(matrix) <- names
+  colnames(matrix) <- names
+  
+  # Print the matrix with corresponding names
+  print(matrix)
+}
 
-
-# Order the column names
-#sorted_column_names <- sort(colnames(X_all_main))
-
-# Reorder the columns of your data frame using the sorted column names
-#X_all_main <- X_all_main[, sorted_column_names]
-print(colnames((X_only_main)))
-
-
-
-
-
+# Example usage:
+# show_matrix_with_names(mat, names)
 X_xx<-xx
 X_all_main
 colnames(X_xx)
 class(X_xx)
-sum(X_xx[,155])
 
+#Check already scaled when full and how interactions are created
+sum(X_xx[,155])
 all(X_xx[,37]*X_xx[,40]==X_xx[,515])
+
+
+zero_matrix_operation_pairs <- function(matrix_input, l1, l2, l3, l4, tol=1e-5) {
+  # Calculate the number of zeros before the operation (including modified positions)
+  zeros_before <- sum(abs(matrix_input) <= tol)
+  
+  # Initialize a list to store pairs of zero indices
+  zero_pairs <- list()
+  
+  
+  # Count pairs of zeros after the operation and store indices
+  for (i in 1:nrow(matrix_input)) {
+    for (j in min((i + 1),ncol(matrix_input) ):ncol(matrix_input)) {
+      if (abs(matrix_input[i, j]) <= tol && abs(matrix_input[j, i]) <= tol && 
+          !((i <= l1 && j <= l1) || 
+            (i > l1 && i <= l1 + l2 && j > l1 && j <= l1 + l2) || 
+            (i > l1 + l2 && i <= l1 + l2 + l3 && j > l1 + l2 && j <= l1 + l2 + l3) || 
+            (i > l1 + l2 + l3 && j > l1 + l2 + l3))) {
+        zero_pairs[[length(zero_pairs) + 1]] <- c(i, j)  # Store indices of the pair
+      }
+    }
+  }
+  
+  
+  return(list(zeros_before=zeros_before, pairs_of_zeros=length(zero_pairs), zero_pairs=zero_pairs))
+}
+
+columns_names<-colnames(X_xx)
+mains_names<-columns_names[1:40]
+
+options(max.print = 1800)
+
+
+
+
+
 #################### PREP AND SPLIT DATA #######################################################################################################
 #libraries
 
@@ -400,33 +501,6 @@ library(dplyr)
 library(Metrics)
 
 
-
-
-
-
-
-
-
-
-##Create interactions- maybe not needed###
-create_interactions <- function(X) {
-  n_features <- ncol(X)
-  interaction_terms <- matrix(0, nrow = nrow(X), ncol = n_features * (n_features - 1) / 2)
-  col_counter <- 1
-  
-  for (i in 1:(n_features - 1)) {
-    for (j in (i + 1):n_features) {
-      interaction_terms[, col_counter] <- X[, i] * X[, j]
-      col_counter <- col_counter + 1
-    }
-  }
-  
-  return(cbind(X, interaction_terms))
-}
-
-X_train_interactions <- create_interactions(X_train)
-X_test_interactions <- create_interactions(X_test)
-###############
 
 
 
@@ -455,13 +529,13 @@ zero_matrix_operation <- function(matrix_input, l1, l2, l3, l4, tol=1e-5) {
 
 # Example usage:
 # Create a 5x5 matrix
-matrix_input <- matrix(0:24, nrow = 5)
+#matrix_input <- matrix(0:24, nrow = 5)
 
 # Call the function with the matrix and specified lengths
-result <- zero_matrix_operation(matrix_input, 1, 1, 2, 1)
+#result <- zero_matrix_operation(matrix_input, 1, 1, 2, 1)
 
 # Print the result
-print(result)
+#print(result)
 
 
 
@@ -495,46 +569,82 @@ print(length(y_test))
 colnames(X_all_train)
 
 
+y_all_centered<-scale(y$yield*100, center = TRUE, scale = FALSE)
 ######################## HIER NET ##########################################################
 
-lamhat=100
-fit=hierNet(X_all_train,y_train, lam = lamhat, diagonal = FALSE)
-yhat_test=predict(fit,X_all_test)
-yhat_train=predict(fit,X_all_train)
+lamhat=1
+fit=hierNet(X_only_main, y$yield*100, lam = lamhat, diagonal = FALSE, center = FALSE, stand.main = FALSE)
+zero_matrix_operation(fit$th,21,14,2,3)
+
+#yhat_test=predict(fit,X_all_test)
+fit$bn
+
+yhat_train=predict(fit,X_only_main)
 print("-----Library hiernet-----")
 print(paste("rmse train:",rmse(y_train, yhat_train)))
 print(paste("r2 train:", r2(y_train, yhat_train)))
-print(paste("rmse test:",rmse(y_test, yhat_test)))
-print(paste("r2 test:", r2(y_test, yhat_test)))
+#print(paste("rmse test:",rmse(y_test, yhat_test)))
+#print(paste("r2 test:", r2(y_test, yhat_test)))
 zero_matrix_operation(fit$th,21,14,2,3)
 print(fit$th)
-options(max.print=1e6)
-print(fit)
-print(dim(fit$th))
+
+
+
+
+# Call the function to store the vectors and theta in a file
+#folder_name <- "Results"
+#file_name <- "lm0.0001_Unscaled_All_lib"
+#store_vectors_theta(fit$bp, fit$bn, fit$th, folder_name, file_name)
+
+# Example usage:
+folder_name <- "Results"
+file_name <- "lmd50_Unscaled_All"
+data <- read_vectors_theta(folder_name, file_name)
+theta_lmd1 <- data$theta
+zero_matrix_operation_pairs(theta_lmd1,21,14,2,3)
+
+
+
+
+#lm1_idx=which(theta_lmd1==0)
+#lm2_idx=which(fit$th==0)
+#length(intersect(lm1_idx, lm2_idx))
+#length(lm1_idx)
+#length(lm2_idx)
+
+
+
+#options(max.print=1e6)
+#print(fit)
+#print(dim(fit$th))
 #checkBlocks(fit$th,15,4)
-fit$th
-fit$lam
-max(yhat)
-max(y_test)
+#fit$th
+#fit$lam
+#max(yhat)
+#max(y_test)
 print("------------")
-y_train
-################## DO THE SAME WITH MY HIERNET
+#y_train
+
+
+################## DO THE SAME WITH MY HIERNET ON ENTIRE DATA UNSCALED !!!!!!!!!!!!!!!!!!!!! #########################################
 
 source("WeakHierNet_Class_corrected_unscaled.R")
 print('My weakhiernet')
 
 t<-6e-5+3e-8
 #t<-0.001
+lmd<-50
 colnames(X_only_main)
-y_all_centered<-scale(y$yield*100, center = TRUE, scale = FALSE)
 myWeakHierNet<-WeakHierNetUnscaled (X=X_only_main, Beta_plus_init=matrix(0,nrow = dim(X_only_main)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_only_main)[2], ncol = 1), 
-              Theta_init=matrix(0, ncol = dim(X_only_main)[2], nrow = dim(X_only_main)[2]), y=y_all_centered, lambda=10, t=t, tol=1e-7, 
+              Theta_init=matrix(0, ncol = dim(X_only_main)[2], nrow = dim(X_only_main)[2]), y=y_all_centered, lambda=lmd, t=t, tol=1e-7, 
               max_iter=10000, eps=1e-8)  #Increase max iter if needed or decrease tol 
 
 # Fit the model
 fitted=myWeakHierNet$fit(X=X_only_main, Beta_plus_init=matrix(0,nrow = dim(X_only_main)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_only_main)[2], ncol = 1), 
-                         Theta_init=matrix(0, ncol = dim(X_only_main)[2], nrow = dim(X_only_main)[2]), y=y_all_centered, lambda=10, t=t, tol=1e-7, 
+                         Theta_init=matrix(0, ncol = dim(X_only_main)[2], nrow = dim(X_only_main)[2]), y=y_all_centered, lambda=lmd, t=t, tol=1e-7, 
                          max_iter=10000, eps=1e-8 )
+
+#fitted$Beta_hat_plus
 
 # Make predictions
 new_X <- X_only_main
@@ -542,9 +652,9 @@ print("R2 score on all data")
 myWeakHierNet$R2_score(self=fitted, new_X= as.matrix(X_only_main), y_true = y_all_centered, verbose = TRUE)
 
 fitted
-y_pred<-myWeakHierNet$predict(self=fitted, X_all_test)
+y_pred<-myWeakHierNet$predict(self=fitted, X_only_main)
 
-plot(y_pred, scale(y_test, scale= FALSE))
+plot(y_pred, y_all_centered)
 
 sum(abs(fitted$Theta_hat)<=0.000001)
 
@@ -555,12 +665,14 @@ fitted$Theta_hat
 
 # Call the function to store the vectors and theta in a file
 folder_name <- "Results"
-file_name <- "lmd100_it10k"
+file_name <- "lmd50_Unscaled_All"
 store_vectors_theta(fitted$Beta_hat_plus, fitted$Beta_hat_minus, fitted$Theta_hat, folder_name, file_name)
+
+show_matrix_with_names(theta_lmd1, colnames(X_only_main))
 
 # Example usage:
 folder_name <- "Results"
-file_name <- "lmd80_it10k"
+file_name <- "lmd1_Unscaled_All"
 data <- read_vectors_theta(folder_name, file_name)
 theta_lmd1 <- data$theta
 
@@ -572,72 +684,39 @@ length(lm2_idx)
 
 
 
-##### SEE ALSO LM############
-X<-X_all_train
-p <- ncol(X)
-n<-nrow(X)
-X <- scale(X)#standardize X
-#CONSTRUCT Z
-Z=t(apply(X, 1, function(x) outer(x, x, "*")))
-Z <- scale(Z, center = TRUE, scale = FALSE) #center Z
-Z=set_Z_values_to_zero(Z,p) #MAKE 0 cols for Xi Xi interaction
-y<-y_train
-y <- scale(y, center = TRUE, scale = FALSE) #center y
-XZ <- cbind(X, Z)
-dim(XZ)
-
-# Identify columns with all zeros
-
-print(dim(zero_columns))
-# Remove constant columns
-XZ<-XZ[, colSums(XZ != 0) > 0]
-print(dim(XZ))
-print(XZ[23:30,55:100])
-
-# Perform linear regression
-model <- lm(y ~ XZ)
-coefficients<-coef(model)
-coefficients
-coefficients_sub <- coefficients[41:length(coefficients)]
-
-# Reshape coefficients into a 40x40 matrix
-coeff_matrix <- matrix(coefficients_sub, nrow = 40, ncol = 40, byrow = TRUE)
-zero_matrix_operation(coeff_matrix,21,14,2,3,0)
-coeff_matrix
-
-
-###########################################################################################################
 
 
 
 
 
-############################# USE MY CORRECTED CLASS ##########################################
-source("WeakHierNet_Class_corrected.R")
+############################# USE MY CORRECTED CLASS on X_train but unscaled ##########################################
+source("WeakHierNet_Class_corrected_unscaled.R")
 
 Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1)
 Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1)
 Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2])
-lambda=80
-t=0.00001
-tol = 1e-5
+lambda=1e-5
+t=6e-5+3e-8
+tol = 1e-6
 
-myWeakHierNet<-WeakHierNet (X=X_all_train, Beta_plus_init= Beta_plus_init, Beta_minus_init=Beta_minus_init, 
+myWeakHierNet<-WeakHierNetUnscaled(X=X_all_train, Beta_plus_init= Beta_plus_init, Beta_minus_init=Beta_minus_init, 
                             Theta_init = Theta_init, y=y_train, lambda=lambda, t=t, tol=tol, 
                             max_iter=100, eps=1e-8 ) 
 
 
 
 # Fit the model
-fitted=myWeakHierNet$fit(X=X_all_train, y=y_train, lambda=lambda, t = t, tol = tol, max_iter = 100, eps = 1e-8,
+fitted=myWeakHierNet$fit(X=X_all_train, y=y_train, lambda=lambda, t = t, tol = tol, max_iter = 15000, eps = 1e-8,
                          Beta_plus_init = Beta_plus_init,Beta_minus_init =  Beta_minus_init, Theta_init =  Theta_init)
-fitted
+
 # Make predictions
 #y_pred=myWeakHierNet$predict(fitted, X_all_train)
 #y_pred
 #scale(y_train,center = TRUE, scale= FALSE)
 
-myWeakHierNet$R2_score(self=fitted, new_X= as.matrix(X_all_test), y_true = y_test, verbose = TRUE)
+myWeakHierNet$R2_score(self=fitted, new_X= as.matrix(X_all_train), y_true = y_train, verbose = TRUE)
+
+###BAD RESULTS
 
 ###########################################################################################################
 
@@ -917,62 +996,6 @@ coef(lm_model)
 
 
 
-
-
-
-store_vectors_theta <- function(beta_plus, beta_minus, theta, folder_name, file_name) {
-  # Create the full file path
-  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
-  
-  # Write beta_plus, beta_minus, and theta to the file
-  write.table(beta_plus, file = file_path, append = FALSE, col.names = FALSE, row.names = FALSE)
-  write.table(beta_minus, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
-  write.table(theta, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
-}
-
-# Example usage:
-# Define sample data for beta_plus, beta_minus, and theta
-beta_plus <- c(1, 2, 3)
-beta_minus <- c(4, 5, 6)
-theta <- matrix(1:9, nrow = 3, ncol = 3)
-
-# Call the function to store the vectors and theta in a file
-folder_name <- "Results"
-file_name <- "initial"
-store_vectors_theta(beta_plus, beta_minus, theta, folder_name, file_name)
-
-
-read_vectors_theta <- function(folder_name, file_name) {
-  # Create the full file path
-  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
-  
-  # Read data from the file
-  data <- scan(file_path)
-  
-  # Split the data into beta_plus, beta_minus, and theta
-  p <- sqrt(length(data)+1)-1 ## there are p^2 +2p elems
-  print(p)
-  beta_plus <- as.vector(data[1:p])
-  beta_minus <- as.vector(data[(p + 1):(2 * p)])
-  theta <- matrix(data[(2 * p + 1):length(data)], ncol = p)
-  
-  return(list(beta_plus = beta_plus, beta_minus = beta_minus, theta = theta))
-}
-
-# Example usage:
-folder_name <- "Results"
-file_name <- "initial"
-data <- read_vectors_theta(folder_name, file_name)
-
-# Access the vectors and matrix
-beta_plus <- data$beta_plus
-beta_minus <- data$beta_minus
-theta <- data$theta
-
-
-beta_plus
-beta_minus
-theta
 
 
 

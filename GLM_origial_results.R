@@ -231,7 +231,61 @@ library(caret)
 library(dplyr)
 library(Metrics)
 
-X_only_main<-x.all
+######################### USEFUL FUNCTIONS######################################
+
+store_vector_as_txt <- function(vector, column_names, folder_path, filename) {
+  # Create the directory if it doesn't exist
+  if (!file.exists(folder_path)) {
+    dir.create(folder_path)
+  }
+  
+  # Write vector and column names to a file
+  write.table(data.frame(t(vector)), file = file.path(folder_path, filename),
+              col.names = FALSE, row.names = FALSE, sep = ",")
+  #write.table(data.frame(t(column_names)), file = file.path(folder_path, paste0(filename, "_columns")),
+              #col.names = FALSE, row.names = FALSE, sep = ",")
+}
+
+read_vector_from_txt <- function(folder_path, filename, column_names, verbose=TRUE) {
+  # Read the vector from file
+  vector <- as.numeric(unlist(read.table(file.path(folder_path, filename), sep = ",")))
+  
+
+  
+  if (verbose == TRUE){
+  # Print column names and associated values
+  cat(sprintf("%-12s%s\n", "Column", "Value"))
+  for (i in 1:length(column_names)) {
+    cat(sprintf("%-12s%s\n", paste(column_names[i], ": ", sep = ""), vector[i]))
+  }
+  }
+  return(list(column_names = column_names, vector = vector))
+}
+
+
+
+
+get_elements <- function(column_names, vector_info) {
+  # Extract vector from the result of read_vector_from_txt
+  vector <- vector_info$vector
+  names(vector) <- vector_info$column_names
+  
+  # Find indices of column names in the vector
+  indices <- match(column_names, names(vector))
+  
+  # Get corresponding values from the vector
+  values <- vector[indices]
+  
+  return(values)
+}
+
+
+
+
+
+
+################################################################################## Create X_all_train and X_all_test
+
 
 print(dim(y))
 X_all_main<-xx.all ##have X_all_main for later
@@ -249,38 +303,18 @@ X_all_test <- X_all_main[-index,]
 y_test <- y[-index, ]
 
 
-
+dim(X_all_train)
 
 source('GLM_weak_HierNet_functions.R')
 
-beta_result1<-fisher_scoring(y=y_train, X=X_all_train, beta_init=lm(y_train~X_all_train)$coef,tol=1e-3, max_iter=1e2)
-beta_result1
-pred_train<-sapply(as.vector(as.matrix(X_all_train)%*%beta.hat[-1]+beta.hat[1]), my_k_prime)
-pred_test<-sapply(as.vector(as.matrix(X_all_test)%*%beta.hat[-1]+beta.hat[1]), my_k_prime)
-print("rmse mine:")
-print(sqrt(mean((pred_train*100-y_train*100)^2)))
-print('r2 mine')
-print(r2(y_train, pred_train))
-print(r2(y_test, pred_test))
 
+
+
+##################
  
 
 columns_names<-colnames(X_all_train)
 #####CIORNA INDEX MAIN EFFECTS AND INTERACTIONs####
-
-# Function to get interactions containing a main effect
-get_interactions <- function(main_effect, all_colnames) {
-  interactions <- vector("list", length(all_colnames))
-  for (i in seq_along(all_colnames)) {
-    col <- all_colnames[i]
-    if (grepl(main_effect, col)) {
-      interactions[[i]] <- i
-    }
-  }
-  interactions <- interactions[!sapply(interactions, is.null)]
-  return(list(main_effect = main_effect, interactions = interactions))
-}
-
 
 # Extract main effects from column names
 
@@ -312,19 +346,19 @@ main_effects_and_interactions <- lapply(main_effects, get_interactions, all_coln
 # Remove elements with no interactions
 main_effects_and_interactions <- main_effects_and_interactions[sapply(main_effects_and_interactions, function(x) length(x$interactions) > 0)]
 
-# Display the result
-print(main_effects_and_interactions)
+
 # Extract interactions from main_effects_and_interactions
 list_of_interactions <- lapply(main_effects_and_interactions, function(x) x$interactions)
 
 # Display the result
+print("List that has lists like (main effect, interactions for that main effect), which is needed for the penalty. It has the positions of those interactions.")
 print(list_of_interactions)
 
 
 ###USE FISHER SCORING FOR HIERARCHICAL LASSO
-source('GLM_weak_HierNet_functions.R')
 
-beta_result<-fisher_scoring_lasso(y=y_train, X=X_all_train, beta_init=lm(y_train~X_all_train)$coef, interactions=list_of_interactions, lambda=50,tol=0.03, max_iter=10) #The higher no of iters the better the result but takes loong
+
+beta_result<-fisher_scoring_lasso(y=y_train, X=X_all_train, beta_init=lm(y_train~X_all_train)$coef, interactions=list_of_interactions, lambda=1,tol=0.01, max_iter=15) #The higher no of iters the better the result but takes loong
 beta_result<-beta_result$beta.hat
 pred_train<-sapply(as.vector(as.matrix(X_all_train)%*%beta_result[-1]+beta_result[1]), my_k_prime)
 pred_test<-sapply(as.vector(as.matrix(X_all_test)%*%beta_result[-1]+beta_result[1]), my_k_prime)
@@ -334,7 +368,41 @@ print('r2 mine')
 print(r2(y_train, pred_train))
 print(r2(y_test, pred_test))
 
-print(sum(abs(beta_result)<=1e-4))
+plot(pred_test,y_test)
+
+#beta_result
+print(sum(abs(beta_result)<=1e-5))
+#################################################
+
+
+
+####HOW TO STORE THE RESULTS ######################################################################
+
+
+##FILENAME AND FOLDER PATH
+folder_path <- 'Results'
+filename <- 'GLM_lmd100.txt'
+
+#STORE
+store_vector_as_txt(vector=beta_result, column_names=colnames(X_all_train), folder_path=folder_path, filename=filename)
+
+
+#LOAD AGAIN AND USE
+beta_hat<-read_vector_from_txt(folder_path, filename, column_names = colnames(X_all_train))$vector
+pred_train<-sapply(as.vector(as.matrix(X_all_train)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
+pred_test<-sapply(as.vector(as.matrix(X_all_test)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
+
+get_elements(c('base 1', 'additive 17', 'base 2:ligand 3'), read_vector_from_txt(folder_path, filename, column_names = colnames(X_all_train)))
+
+###PRINT SCORES
+print("rmse mine:")
+print(sqrt(mean((pred_train*100-y_train*100)^2)))
+print('r2 mine')
+print(r2(y_train, pred_train))
+print(r2(y_test, pred_test))
+print(sum(abs(beta_hat)<=1e-5))
+
+
 
 #### CONLUSION####
 
@@ -345,31 +413,6 @@ print(sum(abs(beta_result)<=1e-4))
 
 
 
-#### COMPARE THE 3 BETAS
-beta_init=lm(y_train~X_all_train)$coef
-sum(abs(beta_result-beta_init))
-sum(abs(beta.hat-beta_init))
-print("l1 norm dif between 2 betas for GLM")
-sum(abs(beta.hat-beta_result))
 
-print('r2 sum type')
-sqrt(sum((beta_result-beta_init)^2))
-sqrt(sum((beta.hat-beta_init)^2))
-sqrt(sum((beta.hat-beta_result)^2))
-
-#####
-
-source('GLM_paper_functions.R')
-
-beta.start <- lm(y_train~X_all_train)$coef
-
-# Prediction
-beta.hat <- fisher.scoring(y_train,X_all_train,beta.start)$beta.hat
-pred.cb <- kappa1(as.vector(as.matrix(X_all_test)%*%beta.hat[-1]+beta.hat[1]))
-rmse.cb <- sqrt(mean((pred.cb*100-y_test*100)^2))
-r2(y_test, pred.cb)
-
-
-print(rmse.cb)
 
 

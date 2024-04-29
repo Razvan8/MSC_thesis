@@ -324,7 +324,7 @@ WeakHierNetUnscaled <- function(X, Beta_plus_init, Beta_minus_init, Theta_init, 
       #print(length(Beta_hat_minus))
       #print(length(Beta_hat_plus))
       r_hat <-y- X %*% (Beta_hat_plus - Beta_hat_minus) - Z %*% vec_Theta_hat / 2
-      r_hat<- -  r_hat/2 ############################### TAKE CARE ! why like this?  ########################
+      r_hat<- -  r_hat/2 ############################### TAKE CARE ! why like this? why/2 ########################
       if (k%%30==3)
       {cat(' Loss rhat',mean(r_hat^2))}
       #cat("Theta", Theta_hat) 

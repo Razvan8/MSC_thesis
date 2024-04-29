@@ -316,9 +316,9 @@ WeakHierNet <- function(X, Beta_plus_init, Beta_minus_init, Theta_init, y, lambd
       
       r_hat_old <- r_hat
       r_hat <-y- X %*% (Beta_hat_plus - Beta_hat_minus) - Z %*% vec_Theta_hat / 2
-      r_hat<- -  r_hat/2 ############################### TAKE CARE ! why like this?  ########################
+      r_hat<- -  r_hat/2 ############################### TAKE CARE ! why like this? ?? why rhat/2 or not??? ########################
       if (k%%50==1)
-      {cat(' Loss rhat',mean(r_hat^2))}
+      {cat(' Loss rhat',mean(r_hat^2))} ###/2 to be like in paper ????????????????????????????/ depends how is r_hat
       #cat("Theta", Theta_hat) 
       
       

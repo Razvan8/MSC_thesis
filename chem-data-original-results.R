@@ -483,7 +483,7 @@ X_test_interactions <- create_interactions(X_test)
 
 
 
-###FUNCTION TO COMPUTE ZEROS BEFORE AND AFTER###
+##########################FUNCTION TO COMPUTE ZEROS BEFORE AND AFTER and read them########################
 
 zero_matrix_operation <- function(matrix_input, l1, l2, l3, l4, tol=1e-5) {
   # Calculate the number of zeros before the operation (excluding modified positions)
@@ -505,6 +505,35 @@ zero_matrix_operation <- function(matrix_input, l1, l2, l3, l4, tol=1e-5) {
   return(list(zeros_before, zeros_after))
 }
 
+
+
+zero_matrix_operation_pairs <- function(matrix_input, l1, l2, l3, l4, tol=1e-5) {
+  # Calculate the number of zeros before the operation (including modified positions)
+  zeros_before <- sum(abs(matrix_input) <= tol)
+  
+  # Initialize a list to store pairs of zero indices
+  zero_pairs <- list()
+  
+  
+  # Count pairs of zeros after the operation and store indices
+  for (i in 1:nrow(matrix_input)) {
+    for (j in min((i + 1),ncol(matrix_input) ):ncol(matrix_input)) {
+      if (abs(matrix_input[i, j]) <= tol && abs(matrix_input[j, i]) <= tol && 
+          !((i <= l1 && j <= l1) || 
+           (i > l1 && i <= l1 + l2 && j > l1 && j <= l1 + l2) || 
+           (i > l1 + l2 && i <= l1 + l2 + l3 && j > l1 + l2 && j <= l1 + l2 + l3) || 
+           (i > l1 + l2 + l3 && j > l1 + l2 + l3))) {
+        zero_pairs[[length(zero_pairs) + 1]] <- c(i, j)  # Store indices of the pair
+      }
+    }
+  }
+  
+  
+  return(list(zeros_before=zeros_before, pairs_of_zeros=length(zero_pairs), zero_pairs=zero_pairs))
+}
+
+
+
 # Example usage:
 # Create a 5x5 matrix
 matrix_input <- matrix(0:24, nrow = 5)
@@ -515,6 +544,48 @@ result <- zero_matrix_operation(matrix_input, 1, 1, 2, 1)
 # Print the result
 print(result)
 
+
+
+
+
+store_vectors_theta <- function(beta_plus, beta_minus, theta, folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Write beta_plus, beta_minus, and theta to the file
+  write.table(beta_plus, file = file_path, append = FALSE, col.names = FALSE, row.names = FALSE)
+  write.table(beta_minus, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+  write.table(theta, file = file_path, append = TRUE, col.names = FALSE, row.names = FALSE)
+}
+
+# Example usage:
+# Define sample data for beta_plus, beta_minus, and theta
+beta_plus <- c(1, 2, 3)
+beta_minus <- c(4, 5, 6)
+theta <- matrix(1:9, nrow = 3, ncol = 3)
+
+# Call the function to store the vectors and theta in a file
+folder_name <- "Results"
+file_name <- "initial"
+store_vectors_theta(beta_plus, beta_minus, theta, folder_name, file_name)
+
+#Function read vectors
+read_vectors_theta <- function(folder_name, file_name) {
+  # Create the full file path
+  file_path <- file.path(folder_name, paste0(file_name, ".txt"))
+  
+  # Read data from the file
+  data <- scan(file_path)
+  
+  # Split the data into beta_plus, beta_minus, and theta
+  p <- sqrt(length(data)+1)-1 ## there are p^2 +2p elems
+  print(p)
+  beta_plus <- as.vector(data[1:p])
+  beta_minus <- as.vector(data[(p + 1):(2 * p)])
+  theta <- matrix(data[(2 * p + 1):length(data)], ncol = p)
+  
+  return(list(beta_plus = beta_plus, beta_minus = beta_minus, theta = theta))
+}
 
 
 
@@ -549,7 +620,7 @@ colnames(X_all_train)
 
 ######################## HIER NET ##########################################################
 
-lamhat=100
+lamhat=1
 fit=hierNet(X_all_train,y_train, lam = lamhat, diagonal = FALSE)
 yhat_test=predict(fit,X_all_test)
 yhat_train=predict(fit,X_all_train)
@@ -558,7 +629,7 @@ print(paste("rmse train:",rmse(y_train, yhat_train)))
 print(paste("r2 train:", r2(y_train, yhat_train)))
 print(paste("rmse test:",rmse(y_test, yhat_test)))
 print(paste("r2 test:", r2(y_test, yhat_test)))
-zero_matrix_operation(fit$th,21,14,2,3)
+zero_matrix_operation_pairs(fit$th,21,14,2,3)
 print(fit$th)
 options(max.print=1e6)
 print(fit)
@@ -575,9 +646,9 @@ y_train
 source("WeakHierNet_Class_corrected.R")
 print('My weakhiernet')
 
-t<-6e-6+3e-8
+t<-7e-6+3e-8
 #t<-0.001
-
+lambda=10
 myWeakHierNet<-WeakHierNet (X=X_all_train, Beta_plus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), Beta_minus_init=matrix(0,nrow = dim(X_all_train)[2], ncol = 1), 
               Theta_init=matrix(0, ncol = dim(X_all_train)[2], nrow = dim(X_all_train)[2]), y=y_train, lambda=1, t=t, tol=1e-7, 
               max_iter=10000, eps=1e-8)  #Increase max iter if needed or decrease tol 
@@ -604,16 +675,24 @@ sum(abs(fitted$Theta_hat)<=0.000001)
 ###se the nr of 0s
 zero_matrix_operation(fitted$Theta_hat,21,14,2,3,0)
 
+r_2way_train<- y_train- myWeakHierNet$predict(self=fitted, X_all_train)
+r_2way_test<- y_test- myWeakHierNet$predict(self=fitted, X_all_test)
+
+
+
 # Call the function to store the vectors and theta in a file
 folder_name <- "Results"
 file_name <- "lmd100_it10k"
 store_vectors_theta(fitted$Beta_hat_plus, fitted$Beta_hat_minus, fitted$Theta_hat, folder_name, file_name)
 
-# Example usage:
+# READ FROM SAVE THETA AND SEE NUMBER OF ZEROS AND WHICH ARE 0
 folder_name <- "Results"
-file_name <- "lmd80_it10k"
+file_name <- "lmd100_it10k"
 data <- read_vectors_theta(folder_name, file_name)
 theta_lmd1 <- data$theta
+
+zeros_info<-zero_matrix_operation_pairs(theta_lmd1,21,14,2,3, 0)
+zeros_info
 
 lm1_idx=which(theta_lmd1==0)
 lm2_idx=which(fitted$Theta_hat==0)
@@ -1028,10 +1107,44 @@ theta
 
 
 
+############################### SEE IF LASSO for 3 way WORKS ON RESIDUALS FROM 2 way interactions ########################
+
+
+X_3way<-xxx.all
+X_3way_train<-X_3way[index,]
+X_3way_test<-X_3way[-index,]
+
+
+##fit lasso model
+library(glmnet)
+# Fit Lasso model
+lasso_model <- glmnet(x = X_3way_train, y = r_2way_train, alpha = 1, lambda = 0.12)
+
+# Predictions for training data
+train_predictions_3way <- predict(lasso_model, newx = X_3way_train)
+
+# Predictions for test data
+test_predictions_3way <- predict(lasso_model, newx = X_3way_test)
+
+print(r2(r_2way_train,train_predictions_3way))
+print(r2(r_2way_test,test_predictions_3way))
+
+y_pred_test<-myWeakHierNet$predict(self=fitted, X_all_test)
+y_pred_train<-myWeakHierNet$predict(self=fitted, X_all_train)
+
+
+print("scores 2 way train test")
+print(r2(y_train, y_pred_train+mean(y_train)))
+print(r2(y_test, y_pred_test+mean(y_train)))
+
+print("scores 3 way train test")
+print(r2(y_train, y_pred_train + train_predictions_3way))
+print(r2(y_test, y_pred_test + test_predictions_3way))
 
 
 
 
+coef(lasso_model)
 
 
 
