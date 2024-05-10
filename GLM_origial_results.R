@@ -292,6 +292,8 @@ X_all_main<-xx.all ##have X_all_main for later
 print(dim(X_all_main))
 dim(y)
 
+
+
 index <- createDataPartition(y = y$yield, p = 0.7, list = FALSE)
 
 
@@ -311,15 +313,15 @@ source('GLM_weak_HierNet_functions.R')
 
 
 ##################
- 
+columns_names<-colnames(X_all_train) 
+main_effects<-columns_names[1:40]
 
-columns_names<-colnames(X_all_train)
 #####CIORNA INDEX MAIN EFFECTS AND INTERACTIONs####
 
 # Extract main effects from column names
 
-main_effects<-columns_names[1:40]
-main_effects
+
+
 
 # Function to get interactions containing a main effect
 get_interactions <- function(main_effect, all_colnames) {
@@ -375,32 +377,260 @@ print(sum(abs(beta_result)<=1e-5))
 #################################################
 
 
+r_2way_train<-y_train-pred_train
+r_2way_test<-y_test-pred_test
 
 ####HOW TO STORE THE RESULTS ######################################################################
 
 
 ##FILENAME AND FOLDER PATH
 folder_path <- 'Results'
-filename <- 'GLM_lmd100.txt'
+filename <- 'GLM_lmd0.1.txt'
 
 #STORE
-store_vector_as_txt(vector=beta_result, column_names=colnames(X_all_train), folder_path=folder_path, filename=filename)
+#store_vector_as_txt(vector=beta_result, column_names=colnames(X_all_train), folder_path=folder_path, filename=filename)
 
 
 #LOAD AGAIN AND USE
 beta_hat<-read_vector_from_txt(folder_path, filename, column_names = colnames(X_all_train))$vector
-pred_train<-sapply(as.vector(as.matrix(X_all_train)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
-pred_test<-sapply(as.vector(as.matrix(X_all_test)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
+y_pred_train<-sapply(as.vector(as.matrix(X_all_train)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
+y_pred_test<-sapply(as.vector(as.matrix(X_all_test)%*%beta_hat[-1]+beta_hat[1]), my_k_prime)
 
-get_elements(c('base 1', 'additive 17', 'base 2:ligand 3'), read_vector_from_txt(folder_path, filename, column_names = colnames(X_all_train)))
+#get_elements(c('base 1', 'additive 17', 'base 2:ligand 3'), read_vector_from_txt(folder_path, filename, column_names = colnames(X_all_train)))
+
+
+r_2way_train<-y_train-y_pred_train
+r_2way_test<-y_test-y_pred_test
+
+mean(r_2way_test)
+mean(r_2way_train)
+
+print(mean(y_test))
 
 ###PRINT SCORES
 print("rmse mine:")
 print(sqrt(mean((pred_train*100-y_train*100)^2)))
 print('r2 mine')
-print(r2(y_train, pred_train))
-print(r2(y_test, pred_test))
+print(r2(y_train, y_pred_train))
+print(r2(y_test, y_pred_test))
 print(sum(abs(beta_hat)<=1e-5))
+
+plot(y_test, pred_test)
+
+####################### USE 3WAY SEQ on reisduals #############################
+
+
+
+
+
+X_3way<-xxx.all
+X_3way_train<-X_3way[index,c(516:2195)]
+X_3way_test<-X_3way[-index,c(516:2195)]
+
+
+
+
+################ fit lasso model on X3way#######################
+
+
+library(glmnet)
+# Fit Lasso model
+lasso_model <- glmnet(x = X_3way_train, y = r_2way_train, alpha = 1, lambda = 0.003)
+psi_vec_init<-array(coef(lasso_model)[2:length(coef(lasso_model))])
+coef(lasso_model)
+# Predictions for training data
+train_predictions_3way <- predict(lasso_model, newx = X_3way_train)
+
+# Predictions for test data
+test_predictions_3way <- predict(lasso_model, newx = X_3way_test)
+
+print(r2(r_2way_train,train_predictions_3way))
+print(r2(r_2way_test,test_predictions_3way))
+
+print(mean(r_2way_train))
+
+#y_pred_test<-myWeakHierNet$predict(self=fitted, X_all_test)
+#y_pred_train<-myWeakHierNet$predict(self=fitted, X_all_train)
+
+
+#print("scores 2 way train test")
+#print(r2(y_train, y_pred_train+mean(y_train)))
+#print(r2(y_test, y_pred_test+mean(y_train)))
+
+#print("scores 3 way train test")
+print(r2(y_train, y_pred_train + train_predictions_3way))
+print(r2(y_test, y_pred_test + test_predictions_3way))
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Fit my WEAKHIERNET_SEQ for 3 way ##############################
+source("WeakHierNet_Class_sequential.R")
+
+
+get_thetabound_from_theta_hat<-function(theta_hat,l1=21,l2=14,l3=2,l4=3)
+{
+  theta_bound<-matrix(0,l1+l2+l3+l4, l1+l2+l3+l4)
+  
+  for (index in c(1: (l1*(l2+l3+l4) +l2*(l3+l4) + l3*l4) ) ){
+    #print(index)
+  
+  
+  if ( index<=l1*(l2+l3+l4) ) #case 1 and case 2: additive + aryl-halide/base/lig
+    
+  {x<- floor((index-1)/(l2+l3+l4))+1
+    y<- index- (x-1)* (l2+l3+l4) +l1
+    theta_bound[x,y]<-theta_hat[index]} #not over 2 because the other is 0 i.e. theta[y,x]
+        
+  
+ 
+  if (index>l1*(l2+l3+l4)  & index<= l1*(l2+l3+l4) +l2*(l3+l4) ) #x aryl-halide+ base/lig
+   { x<- floor( (index-l1*(l2+l3+l4)-1)/(l3+l4)) + (l1+1)
+    y<- index- l1* (l2+l3+l4) - (x-1-l1) *(l3+l4) + (l1+l2)
+    theta_bound[x,y]<-theta_hat[index]}
+  
+  if (index> l1*(l2+l3+l4) +l2*(l3+l4) ) #x base+lig
+  { x<- floor( (  index-l1*(l2+l3+l4) -l2*(l3+l4) -1 )/l4) + l1+l2+1
+    y<- index- l1* (l2+l3+l4) - l2 *(l3+l4) + - (x-1-l1-l2)*l4   +(l1+l2+l3)
+    theta_bound[x,y]<-theta_hat[index]}
+  }
+  
+  return(theta_bound)
+  
+}
+
+
+get_psi_from_psi_vec<-function(psi_vec,l1=21,l2=14, l3=2,l4=3)
+{ counter<-1
+  psi<-array(0,dim=(c(40,40,40)))
+  
+  ### CASE 1+case 2 have additive, aryl halide and anything else
+  for (i in c(1:l1)) { #add
+    for (j in c((l1+1):(l1+l2) ) ) { #halide
+      for (k in c( (l1+l2+1): (l1+l2+l3+l4) ) ) {  #base\lig
+        #cat("i:", i, ", j:", j, ", k:", k ,'\n')
+        psi[i,j,k]<-psi_vec[counter]/6
+        psi[i,k,j]<-psi_vec[counter]/6
+        psi[k,i,j]<-psi_vec[counter]/6
+        psi[k,j,i]<-psi_vec[counter]/6
+        psi[j,i,k]<-psi_vec[counter]/6
+        psi[j,k,i]<-psi_vec[counter]/6
+        counter<-counter+1
+      }}} ##case 1 : add, aryl-halide base/lig
+
+### CASE 3 have additive,  base, ligand
+ for (i in c(1:l1)) { #add
+   for (j in c((l1+l2+1):(l1+l2+l3) ) ) { #base
+     for (k in c( (l1+l2+l3+1): (l1+l2+l3+l4) ) ) {  #ligand
+      #cat("i:", i, ", j:", j, ", k:", k ,'\n')
+       psi[i,j,k]<-psi_vec[counter]/6
+       psi[i,k,j]<-psi_vec[counter]/6
+       psi[k,i,j]<-psi_vec[counter]/6
+       psi[k,j,i]<-psi_vec[counter]/6
+       psi[j,i,k]<-psi_vec[counter]/6
+       psi[j,k,i]<-psi_vec[counter]/6
+       counter<-counter+1
+     }}}
+
+### CASE 4 have halide,  base, ligand
+for (i in c((l1+1):(l1+l2)) ) { #halide
+  for (j in c((l1+l2+1):(l1+l2+l3) ) ) { #base
+    for (k in c( (l1+l2+l3+1): (l1+l2+l3+l4) ) ) {  #ligand
+      psi[i,j,k]<-psi_vec[counter]/6
+      psi[i,k,j]<-psi_vec[counter]/6
+      psi[k,i,j]<-psi_vec[counter]/6
+      psi[k,j,i]<-psi_vec[counter]/6
+      psi[j,i,k]<-psi_vec[counter]/6
+      psi[j,k,i]<-psi_vec[counter]/6
+      counter<-counter+1
+    }}}
+  print(counter)
+  return(psi)
+  }
+ 
+#mhat<-array(0,24)
+#mhat[2]=2
+#mhat[1]=1
+#mhat[24]=24
+#mhat[5]=5
+#get_thetabound_from_theta_hat(mhat,l1=2,l2=2,l3=2,l4=2) 
+
+
+
+
+
+
+lambda <-1e1
+t<-2e-6+5e-7
+eps=1e-8
+#psi_init<-array(rnorm(40*40*40, mean = 0, sd = 2), dim = c(40,40,40))
+psi_init<-get_psi_from_psi_vec(psi_vec_init)
+
+#print(dim(x.all))
+
+#print(length(beta_hat[42:length(beta_hat)]))
+
+#print(dim(X_3way_train))
+#print(dim(X_all_main))
+
+###DO PROPER THETA BOUND##################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#theta_bound<- matrix(20,nrow=40,ncol=40) ###de verificat#########################
+theta_bound<-  ( get_thetabound_from_theta_hat(beta_hat[42:length(beta_hat)]) +t(get_thetabound_from_theta_hat(beta_hat[42:length(beta_hat)])) )/2
+min(get_thetabound_from_theta_hat(beta_hat[42:length(beta_hat)]))
+#theta_bound<-matrix(0.2,40,40)
+max(theta_bound)
+max(abs(r_2way_train))
+# Example usage:
+
+# Create an instance of the WeakHierNet class
+myWeakHierNet_seq <- WeakHierNet_seq(X=X_3way_train, psi_init=psi_init, y=r_2way_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=5e-8, max_iter=900, eps=1e-8,
+                                     l1=21,l2=14,l3=2,l4=3)
+
+
+
+# Fit the model
+fitted=myWeakHierNet_seq$fit(X=X_3way_train, psi_init=psi_init, y=r_2way_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-8, max_iter=900, 
+                             eps=1e-8,l1=21,l2=14,l3=2,l4=3)
+#print(fitted$vec_psi_hat)
+print(max(colSums(abs(fitted$psi_hat))))
+#print(fitted$psi_hat)
+sum(abs(fitted$vec_psi_hat)==0)
+fitted$vec_psi_hat
+mean(r_2way_train)
+mean(r_2way_test)
+# Make predictions
+new_X <- X_3way_test
+pred_train<- myWeakHierNet_seq$pred(fitted,X_3way_train)
+pred_test<- myWeakHierNet_seq$pred(fitted,X_3way_test)
+print(r2(r_2way_train,pred_train))
+print(r2(r_2way_test,pred_test))
+
+print(myWeakHierNet_seq$R2_score(fitted,X_3way_train,r_2way_train))
+print(myWeakHierNet_seq$R2_score(fitted,X_3way_test,r_2way_test))
+
+print(r2(y_train, y_pred_train))
+print(r2(y_train, y_pred_train+pred_train))
+print(r2(y_test, y_pred_test))
+print(r2(y_test, y_pred_test+pred_test))
+
+
+
+
+######################################################33
+
+
+
+
+
 
 
 

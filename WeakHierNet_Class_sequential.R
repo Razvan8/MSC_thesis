@@ -54,12 +54,12 @@ hierarchical_lasso_seq_loss <- function(X, y,psi, lambda) {
 
 
 #Example test HIER LASSO LOSS
-X=matrix(c(2,2,1,1), nrow = 2, ncol = 2, byrow = TRUE)
-print(X)
-y=matrix(c(9,4), nrow = 2, ncol = 1)
-psi=matrix(c(1,3), nrow = 2, ncol = 1)
-lambda=1
-hierarchical_lasso_seq_loss(X, y, psi, lambda)
+#X=matrix(c(2,2,1,1), nrow = 2, ncol = 2, byrow = TRUE)
+#print(X)
+#y=matrix(c(9,4), nrow = 2, ncol = 1)
+#psi=matrix(c(1,3), nrow = 2, ncol = 1)
+#lambda=1
+#hierarchical_lasso_seq_loss(X, y, psi, lambda)
 
 
 ###SOFT THRESHOLDING OPERATOR
@@ -94,6 +94,8 @@ RELU <- function(x) {
 evaluate_knots_seq <- function(psi_tilda_jk, lambda, f, t = 1,c=1) {
   p <- length(psi_tilda_jk)
   
+  #cat("psitilda_jk", psi_tilda_jk)
+  
   set_elements <- 0##add also 0 to knots, it has positive value in evaluated
   
   for (k in 1:p)  { 
@@ -124,6 +126,7 @@ evaluate_knots_seq <- function(psi_tilda_jk, lambda, f, t = 1,c=1) {
 # Function to find adjacent knots and calculate alpha_hat - HELPING FUNCTION FOR ONEROW
 find_adjacent_knots_and_alpha <- function(knots, evaluated) {
   # Find the index where evaluated > 0
+  #print(evaluated)
   positive_index <- max(which(evaluated > 0))
   #print(which(evaluated > 0))
   #cat("positive index", positive_index)
@@ -136,7 +139,7 @@ find_adjacent_knots_and_alpha <- function(knots, evaluated) {
     
     # Calculate alpha_hat
     #alpha_hat <- -evaluated[positive_index] * (evaluated[positive_index + 1] - evaluated[positive_index]) / (p2 - p1) ##initial one
-    alpha_hat <- (p1*evaluated[positive_index + 1] - p2*evaluated[positive_index]) / (evaluated[positive_index + 1] - evaluated[positive_index])
+    alpha_hat <- (p1*evaluated[positive_index + 1] - p2*evaluated[positive_index]) / (evaluated[positive_index + 1] - evaluated[positive_index]) #new
     #print(positive_index)
     return(alpha_hat)
   } else {
@@ -151,7 +154,7 @@ psi_hat_jk = Soft_thresholding(psi_hat_jk, t*(lambda/6 + alpha_hat))
 return (psi_hat_jk)
 }
 
-##RUN TESTS ###############################################################################################################################
+## FUNCTIONS ##########################################################
 
 get_all_possible_kj<-function(l1=21,l2=14,l3=3,l4=2)
  {range1<-c(1:l1)
@@ -212,14 +215,14 @@ get_possible_positions<- function(l1=21,l2=14,l3=3,l4=2) #get possible positions
 
 
 
-my_table <- array(1:64, dim = c(4, 4, 4))
+#my_table <- array(1:64, dim = c(4, 4, 4))
 
 
 
 psi_value_from_table_position<-function (table,i,j,k)
 {return( (table[i,j,k] + table[i,k,j] + table [j,i,k] +table[j,k,i] + table[k,i,j] + table[k,j,i] )/6)}
 
-print(get_possible_positions(l1=3,l2=2,l3=2,l4=2))
+#print(get_possible_positions(l1=3,l2=2,l3=2,l4=2))
 
 table_position_to_vector_index<- function(position_tuple, l1=21,l2=14,l3=2,l4=3) ## takes into account only possible combinations
 {
@@ -288,44 +291,44 @@ get_psi_vec<-function(psi,l1=21,l2=14,l3=2,l4=3)
 
 
 # Create the 3-dimensional array
-array_data <- array(data = c(
+#array_data <- array(data = c(
   # Values for the first layer
-  0, 0.000000, 0.0000000, 0.000000,
-  0, 0.000000, -3.3490767, 1.899415,
-  0, 2.887088, 0.0000000, 3.100585,
-  0, 1.206102, 0.1402117, 0.000000,
+  #0, 0.000000, 0.0000000, 0.000000,
+  #0, 0.000000, -3.3490767, 1.899415,
+  #0, 2.887088, 0.0000000, 3.100585,
+  #0, 1.206102, 0.1402117, 0.000000,
   
   # Values for the second layer
-  0.0000000, 0, 0.8724023, -0.07197379,
-  0.0000000, 0, 0.0000000, 0.00000000,
-  -3.7229584, 0, 0.0000000, 0.50213101,
-  0.7168255, 0, 1.8879085, 0.00000000,
+  #0.0000000, 0, 0.8724023, -0.07197379,
+  #0.0000000, 0, 0.0000000, 0.00000000,
+  #-3.7229584, 0, 0.0000000, 0.50213101,
+  #0.7168255, 0, 1.8879085, 0.00000000,
   
   # Values for the third layer
-  0.000000, 3.247535, 0, 0.3154444,
-  2.306129, 0.000000, 0, 1.5593346,
-  0.000000, 0.000000, 0, 0.0000000,
-  -1.263373, -1.752465, 0, 0.0000000,
+  #0.000000, 3.247535, 0, 0.3154444,
+  #2.306129, 0.000000, 0, 1.5593346,
+  #0.000000, 0.000000, 0, 0.0000000,
+  #-1.263373, -1.752465, 0, 0.0000000,
   
   # Values for the fourth layer
-  0.0000000, 1.4078473, 1.676665, 0,
-  0.3514781, 0.0000000, 1.668121, 0,
-  3.0134272, 0.1127374, 0.000000, 0,
-  0.0000000, 0.0000000, 0.000000, 0
-), dim = c(4, 4, 4))
+  #0.0000000, 1.4078473, 1.676665, 0,
+  #0.3514781, 0.0000000, 1.668121, 0,
+  #3.0134272, 0.1127374, 0.000000, 0,
+  #0.0000000, 0.0000000, 0.000000, 0
+#), dim = c(4, 4, 4))
 
 # Print the array
-print(array_data)
+#print(array_data)
 
 
-psi<-  array(1, dim = c(4, 4, 4))
+#psi<-  array(1, dim = c(4, 4, 4))
 # 123 45 67 89
 # Set some positions to 1
-psi[1, 2, 3] <- 6
-psi[1, 3, 2] <- 6
-psi[3, 1, 2] <- 6
+#psi[1, 2, 3] <- 6
+#psi[1, 3, 2] <- 6
+#psi[3, 1, 2] <- 6
 
-get_psi_vec(psi = array_data,l1=1,l2=1,l3=1,l4=1)
+#get_psi_vec(psi = array_data,l1=1,l2=1,l3=1,l4=1)
 
 
 
@@ -356,7 +359,7 @@ set_0s_psi<-function(psi,l1=21,l2=14,l3=2,l4=3)
  return(psi)
 }
 
-set_0s_psi(psi, l1=3,l2=2,l3=2,l4=2)
+
 
 get_range<- function(x,l1=21,l2=14,l3=2,l4=3)
 {if (x<=l1)
@@ -404,9 +407,9 @@ get_cols_Xkj<-function(X,k,j,l1=21,l2=14,l3=2,l4=3) #####De verificat!!!!!!!!!!!
   return(X_kj)
 }
 
-get_cols_Xkj(matrix(c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7), nrow=4, ncol =7),3,4, 2,1,1,1)
+#get_cols_Xkj(matrix(c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7), nrow=4, ncol =7),3,4, 2,1,1,1)
 
-print(matrix(c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7),nrow=4, ncol=7))
+#print(matrix(c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7),nrow=4, ncol=7))
 
 
 ###############################################################################################################################################
@@ -421,7 +424,10 @@ ONEROW_SEQ <- function(psi_tilda_jk, lambda, theta_bound_jk,  t=1, c=1) {
     #print('alpha')
     #print(alpha)
     #cat(' suma ',sum(abs(Soft_thresholding( Theta_tilda_j, t*(lambda/2+alpha)  ) ) ))
-    return( sum(abs(Soft_thresholding( psi_tilda_jk, t*(lambda/6+alpha)  ) ) ) - c*abs(theta_bound_jk) )### 1
+    result<- sum(abs(Soft_thresholding( psi_tilda_jk, t*(lambda/6+alpha)  ) ) ) - c*abs(theta_bound_jk) ### 1
+    if (abs(result)<1e-7) ###this is new
+    {return(0)}## to solve numerical instability
+    return(result)
   }
   if ( f(0)<=0)  ### 1 a)
   {#print('a')
@@ -456,12 +462,12 @@ ONEROW_SEQ <- function(psi_tilda_jk, lambda, theta_bound_jk,  t=1, c=1) {
   
 }
 
-psi_tilda_jk=c(3,2,0,0,0)
-lambda=6
-theta_bound_jk=2
-t=1
+#psi_tilda_jk=c(3,2,0,0,0)
+#lambda=6
+#theta_bound_jk=2
+#t=1
 
-ONEROW_SEQ(psi_tilda_jk=psi_tilda_jk, lambda=lambda, theta_bound_jk=theta_bound_jk,  t=t)
+#ONEROW_SEQ(psi_tilda_jk=psi_tilda_jk, lambda=lambda, theta_bound_jk=theta_bound_jk,  t=t)
 
 
 
@@ -488,7 +494,7 @@ r2 <- function(actual, predicted) {
 ######################### WEAKHIERNET CLASS #########################################
 
 # Define the WeakHierNet class
-WeakHierNet_seq <- function(X, psi_init, y, theta_bound, lambda,X_main, t=1, tol=1e-6, max_iter=5000, eps=1e-8,l1=21,l2=14,l3=2,l4=3) {
+WeakHierNet_seq <- function(X, psi_init, y, theta_bound, lambda, t=1, tol=1e-6, max_iter=5000, eps=1e-8,l1=21,l2=14,l3=2,l4=3) {
   
   
  
@@ -496,12 +502,16 @@ WeakHierNet_seq <- function(X, psi_init, y, theta_bound, lambda,X_main, t=1, tol
     self$psi_hat <- psi_init
     self$theta_bound <- theta_bound
     self$vec_psi_hat<-get_psi_vec(psi_init,l1=l1,l2=l2,l3=l3,l4=l4)
+    self$means_X<-colMeans(X)
+    self$stds_X<-apply(X,2,sd)
+    self$mean_y<-mean(y)
+    
     
 
   
   
   # Public method for fitting the model
-  fit <- function( X, psi_init, y, lambda, X_mean_init,theta_bound, t=1, tol=1e-2, max_iter=5000, eps=1e-8,l1=21,l2=14,l3=2,l4=3) {
+  fit <- function( X, psi_init, y, lambda,theta_bound, t=1, tol=1e-2, max_iter=5000, eps=1e-8,l1=21,l2=14,l3=2,l4=3) {
     
     eps<-1e-8*lambda
     p <- ncol(X)
@@ -561,19 +571,19 @@ WeakHierNet_seq <- function(X, psi_init, y, theta_bound, lambda,X_main, t=1, tol
   
   # method for predicting
   
-  predict <- function(self, new_X, mean_scale) {
+  predict <- function(self, new_X) {
     
     ## Later add also rescaling
     # Implement prediction code here
     p <- ncol(new_X)
     n<-nrow(new_X)
-    X <- scale(new_X)#standardize X
-    y_pred= X %*%  self$vec_psi_hat + mean_scale  ##predicts already with scale   ###vezi cum faci vec_psi_hat eventual salveaza cu self
+    X <- (new_X-self$means_X)/self$stds_X ### scale X
+    y_pred= X %*%  self$vec_psi_hat + self$mean_y
     return(y_pred)
   }
   
-  R2_score <- function(self, new_X, y_true,mean_scale, verbose= TRUE) { 
-    y_pred = predict(self,new_X, mean_scale) 
+  R2_score <- function(self, new_X, y_true, verbose= TRUE) { 
+    y_pred = predict(self,new_X) 
     
     if (verbose == TRUE)
     {cat ("r2 score is ", r2(y_true, y_pred))
@@ -618,42 +628,33 @@ row14<-c(-1,-1,1,-1)
 row15<-c(-1,-1,-1,1)
 row16<-c(-1,-1,-1,-1)
 
-X<-rbind(row1, row2, row3, row4, row5, row6, row7, row8, row9, row10, row11, row12, row13, row14, row15, row16)
+#X<-rbind(row1, row2, row3, row4, row5, row6, row7, row8, row9, row10, row11, row12, row13, row14, row15, row16)
 
 
 
 ###MAKE 2^4 times each matrix
 
-for (i in 1:5) {
-  X <- rbind(X, X)}
+#for (i in 1:5) {
+  #X <- rbind(X, X)}
 
 
 
-print(colSums(X))
-print(dim(X))
-# Create a diagonal matrix with 1s on the diagonal
-#diag_matrix <- diag(1, nrow = 32, ncol=32)
 
-#repeated_matrix <- do.call(rbind, replicate(5,diag_matrix, simplify = FALSE))
-
-# Assign the combined matrix to the dataset
-#X <- repeated_matrix
-#print(dim(X))
-#print(dim(beta))
 
 # Create a beta vector of length 32
-beta <- numeric(4)
-for (i in 1:length(beta)) {
-  beta[i] <- i %% 4
-}
+#beta <- numeric(4)
+#for (i in 1:length(beta)) {
+#  beta[i] <- i %% 5
+#}
 
-noise <- rnorm(512, mean = 0, sd = 0.1)
-
+#print(beta)
+#noise <- rnorm(512, mean = 0, sd = 0.1)
+#print(dim(X))
 # Generate response variable
-y <- X%*%beta+noise
+#y <- X%*%beta+noise
 
 
-library(caret)
+#library(caret)
 
 # Assuming X and y are your predictor variables and response variable, respectively
 
@@ -661,24 +662,24 @@ library(caret)
 set.seed(123)
 
 # Split the data into training and testing sets
-train_index <- createDataPartition(y, p = 0.8, list = FALSE)
-X_train <- X[train_index, ]
-X_test <- X[-train_index, ]
-y_train <- y[train_index]
-y_test <- y[-train_index]
+#train_index <- createDataPartition(y, p = 0.8, list = FALSE)
+#X_train <- X[train_index, ]
+#X_test <- X[-train_index, ]
+#y_train <- y[train_index]
+#y_test <- y[-train_index]
 
 
-print(length(y_train))
-print(dim(X_train))
+#print(length(y_train))
+#print(dim(X_train))
 
-lm_model <- lm(y_train ~ ., data = as.data.frame(X_train))
+#lm_model <- lm(y_train ~ ., data = as.data.frame(X_train))
 
-# Predict on X_test
-predictions_test <- predict(lm_model, newdata = as.data.frame(X_test))
-predictions_train<-predict(lm_model, newdata =  as.data.frame(X_train))
+#Predict on X_test
+#predictions_test <- predict(lm_model, newdata = as.data.frame(X_test))
+#predictions_train<-predict(lm_model, newdata =  as.data.frame(X_train))
 
-print(r2(y_train, predictions_train))
-print(r2(y_test,predictions_test))
+#print(r2(y_train, predictions_train))
+#print(r2(y_test,predictions_test))
 
 
 
@@ -689,11 +690,14 @@ print(r2(y_test,predictions_test))
 ############ use the class on syntetic dataset ###
 
 
-lambda <- 600
-t<-0.0005
-eps=1e-8
-psi_init<-array(rnorm(4*4*4, mean = 0, sd = 2), dim = c(4,4,4))
-theta_bound<-matrix(2,nrow=4,ncol=4)
+#lambda <-0
+#t<-0.0005
+#eps=1e-8
+#psi_init<-array(rnorm(4*4*4, mean = 0, sd = 2), dim = c(4,4,4))
+#theta_bound<-matrix(2,nrow=4,ncol=4)
+#theta_bound[c(1,2,3),c(1,2,3)]<-1
+
+
 
 
 
@@ -701,51 +705,115 @@ theta_bound<-matrix(2,nrow=4,ncol=4)
 # Example usage:
 
 # Create an instance of the WeakHierNet class
-myWeakHierNet_seq <- WeakHierNet_seq(X=X, psi_init=psi_init, y=y, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-8, max_iter=5000, eps=1e-8,
-                                     l1=1,l2=1,l3=1,l4=1)
+#myWeakHierNet_seq <- WeakHierNet_seq(X=X_train, psi_init=psi_init, y=y_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-8, max_iter=5000, eps=1e-8,
+ #                                    l1=1,l2=1,l3=1,l4=1)
 
 # Fit the model
-fitted=myWeakHierNet_seq$fit(X=X, psi_init=psi_init, y=y, theta_bound=theta_bound, lambda=lambda, X_mean_init= colMeans(X_train), t=t, tol=1e-8, max_iter=5000, 
-                             eps=1e-8,l1=1,l2=1,l3=1,l4=1)
-print(fitted$vec_psi_hat)
-print(beta)
-print(fitted$psi_hat)
+#fitted=myWeakHierNet_seq$fit(X=X_train, psi_init=psi_init, y=y_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-8, max_iter=5000, 
+ #                            eps=1e-8,l1=1,l2=1,l3=1,l4=1)
+#print(fitted$vec_psi_hat)
+#print(beta)
+#print(fitted$psi_hat)
 
 # Make predictions
-new_X <- X_test
-print(dim(X_test))
-pred_train<-scale(X_train)%*%fitted$vec_psi_hat+mean(y_train)
-pred_test<-X_test%*%fitted$vec_psi_hat+mean(y_train)
-print(r2(y_train,pred_train))
-print(r2(y_test,pred_test))
+#new_X <- X_test
 
-myWeakHierNet_seq$R2_score(self=fitted, new_X= as.matrix(new_X),mean_scale = 0, y_true = y_test, verbose = TRUE)
+#print(dim(X_train))
+#print(dim(X_test))
+#print(length(colMeans(X_train)))
+#(X_test-colMeans(X_train)) /apply(X_train, 2, sd)
+#print(length(fitted$vec_psi_hat))
+#pred_train<-scale(X_train)%*%fitted$vec_psi_hat+mean(y_train)
+#pred_test<- ( (X_test-colMeans(X_train))/apply(X_train,2,sd) ) %*%fitted$vec_psi_hat+mean(y_train)
+#print(r2(y_train,pred_train))
+#print(r2(y_test,pred_test))
 
-fitted
+#myWeakHierNet_seq$R2_score(self=fitted, new_X= as.matrix(new_X), y_true = y_test, verbose = TRUE)
 
-
-### Use the library
-
-library(Metrics)
-
-library(hierNet)
-library(caret)
-library(dplyr)
-library(Metrics)
+#fitted
 
 
-lambda=1e2
-fit=hierNet(as.matrix(X),y, lam = lambda, diagonal = FALSE, step = 1e-4)
-yhat=predict(fit,as.matrix(X))
-print(paste("r2- hiernet library:", r2(y, yhat)))
-fit$bp
-fit$bn
-fit
+### Use on another synthetic dataset is columns continous values from normal distribution
+
+# Set the number of predictors
+#num_predictors <- 68
+
+# Set the beta values
+#beta <- c(5, 3, 7, 9, 10, rep(1e-4, num_predictors - 5))
+
+# Generate the predictor variables
+#set.seed(123)  # for reproducibility
+#predictors <- matrix(rnorm(num_predictors * 1000, mean = 0, sd = 5), ncol = num_predictors)
+
+# Generate the noise
+#noise <- rnorm(1000, mean = 0, sd = 0.3)
+
+# Generate the response variable
+#response <- predictors %*% beta + noise
+
+# Combine predictors and response into a data frame
+#data <- data.frame(response = response, predictors)
 
 
-sum(abs(colSums(xxx.all)))
+# Split predictors and response into training and testing sets
+#set.seed(123)  # for reproducibility
+#train_index <- sample(1:1000, 700)  # 70% for training
+#test_index <- setdiff(1:1000, train_index)
 
-dim(xxx.all)
+#X_train <- predictors[train_index, ]
+#X_test <- predictors[test_index, ]
+#y_train <- response[train_index]
+#y_test <- response[test_index]
+
+#lm_model <- lm(y_train ~ ., data = as.data.frame(X_train))
+
+# Make predictions on the testing data
+#predictions_test <- predict(lm_model, newdata = as.data.frame(X_test))
+
+# Calculate the R-squared value on the testing data
+#r2(y_test, predictions_test)
+
+
+
+##
+#lambda <-3e2
+#t<-8e-5
+#eps=1e-8
+#psi_init<-array(rnorm(11*11*11, mean = 0, sd = 2), dim = c(11,11,11))
+#theta_bound<-matrix(1,nrow=11,ncol=11)
+
+
+
+
+
+
+# Example usage:
+
+# Create an instance of the WeakHierNet class
+#myWeakHierNet_seq <- WeakHierNet_seq(X=X_train, psi_init=psi_init, y=y_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-7, max_iter=5000, eps=1e-8,
+ #                                    l1=5,l2=2,l3=2,l4=2)
+
+# Fit the model
+#fitted=myWeakHierNet_seq$fit(X=X_train, psi_init=psi_init, y=y_train, theta_bound=theta_bound, lambda=lambda, t=t, tol=1e-7, max_iter=5000, 
+#                             eps=1e-8,l1=5,l2=2,l3=2,l4=2)
+#print(fitted$vec_psi_hat/fitted$stds_X)
+#print(beta)
+#print(fitted$psi_hat)
+
+# Make predictions
+#new_X <- X_test
+#print(dim(X_test))
+#pred_train<-scale(X_train)%*%fitted$vec_psi_hat+mean(y_train)
+#pred_test<-scale(X_test, center = FALSE)%*%fitted$vec_psi_hat+mean(y_train)
+#pred_test2<- ((X_test-colMeans(X_train))/apply(X_train,2,sd) ) %*%fitted$vec_psi_hat+mean(y_train)
+#print(r2(y_train,pred_train))
+#print(r2(y_test,pred_test2))
+
+
+
+#print('USING METHODS FROM MY CLASS')
+
+#print(myWeakHierNet_seq$R2_score(fitted,X_test,y_test))
 
 
 
@@ -754,4 +822,12 @@ dim(xxx.all)
 
 ## FA COLS CU MEAN 0 prin tehnica cu -1 in 
 ## Vf COD iar
+### Fa pred si score methods
+
+
+###TAKE CARE WHICH KNOTS I USE FOR e)
+####
+#### HOW TO DO SCALE AND MEAN IN PRED AND R2 SCORE
+#### VEZI CUM E FECETUL LUI THETA BOUND DUPA SCALE SAU CAND E MIC
+##why small numerical instability or variance from one run to another
 
